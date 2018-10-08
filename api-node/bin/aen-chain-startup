@@ -1,0 +1,6 @@
+#!/bin/bash
+cd /usr/local/bin
+if [ -f /var/aen/data/file.lock ]; then
+  rm -f /var/aen/data/file.lock
+fi
+aen.server /var/aen

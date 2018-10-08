@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# A simple script to perform first initialisation
+cd /var/aen/rest-gateway
+
+# Check whether the npm rebuild command has been run yet because, there is a
+# high chance zeromq will need to be recompiled
+if [ ! -e /var/aen/rest-gateway/npm_built ]; then
+  npm rebuild
+  echo "OK" > /var/aen/rest-gateway/npm_built
+fi
+
+npm start
