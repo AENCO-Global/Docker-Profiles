@@ -1,8 +1,6 @@
 FROM ubuntu:bionic
 
 RUN apt-get update && apt-get install -y \
-  mongodb \
-  nginx \
   nodejs \
   npm \
   supervisor \
@@ -24,15 +22,8 @@ COPY supervisord.conf /etc/supervisor/supervisord.conf
 # REST Gateway preparation
 COPY --from=aenco/rest-gateway:latest /var/www/html /var/aen/rest-gateway
 
-# Block Explorer preparation
-COPY --from=aenco/block-explorer:latest /var/www/html /var/aen/block-explorer
-COPY nginx/nginx.conf /etc/nginx/nginx.conf
-COPY nginx/block-explorer.conf /etc/nginx/sites-available/default
-
 # REST Gateway
 EXPOSE 3000
-# Block Explorer
-EXPOSE 80
 # AEN Server
 EXPOSE 7900
 EXPOSE 7901
