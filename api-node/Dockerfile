@@ -1,10 +1,6 @@
 FROM ubuntu:bionic
 
 RUN apt-get update && apt-get install -y \
-  mongodb \
-  nginx \
-  nodejs \
-  npm \
   supervisor \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
@@ -13,7 +9,7 @@ RUN apt-get update && apt-get install -y \
 COPY --from=aenco/master-node:core /usr/local/bin /usr/local/bin
 
 # MongoDB preparation
-RUN mkdir -p /data/db
+# RUN mkdir -p /data/db
 
 # Monit preparation
 COPY bin/ /etc/init.d
@@ -22,17 +18,17 @@ COPY supervisor /etc/supervisor/conf.d/
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 
 # REST Gateway preparation
-COPY --from=aenco/rest-gateway:latest /var/www/html /var/aen/rest-gateway
+# COPY --from=aenco/rest-gateway:latest /var/www/html /var/aen/rest-gateway
 
 # Block Explorer preparation
-COPY --from=aenco/block-explorer:latest /var/www/html /var/aen/block-explorer
-COPY nginx/nginx.conf /etc/nginx/nginx.conf
-COPY nginx/block-explorer.conf /etc/nginx/sites-available/default
+# COPY --from=aenco/block-explorer:latest /var/www/html /var/aen/block-explorer
+# COPY nginx/nginx.conf /etc/nginx/nginx.conf
+# COPY nginx/block-explorer.conf /etc/nginx/sites-available/default
 
 # REST Gateway
-EXPOSE 3000
+# EXPOSE 3000
 # Block Explorer
-EXPOSE 80
+# EXPOSE 80
 # AEN Server
 EXPOSE 7900
 EXPOSE 7901

@@ -23,24 +23,3 @@ COPY --from=builder /usr/local/lib /usr/local/bin
 
 WORKDIR /usr/local/bin
 CMD ["/usr/local/bin/aen.server", "/var/aen"]
-
-RUN apt-get update && apt-get install \
-  mongodb \
-  monit \
-  nginx \
-  nodejs
-
-COPY bin/ /usr/local/bin
-COPY monit/monitrc /etc/monit/monitrc
-
-# Block Explorer specific
-COPY --from=aenco/node-explorer:latest /var/www/html /var/aen/block-explorer
-COPY docker_support/nginx-block-explorer.conf /etc/nginx/sites-available/default
-
-# Modify Nginx tp forward web requests to the node explorer
-
-monit logs - /var/log/monit
-catapult logs - /usr/loca/bin/logs
-
-monit -I
--I Run in foreground
