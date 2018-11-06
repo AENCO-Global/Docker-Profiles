@@ -44,9 +44,9 @@ RUN cd /usr/src/googletest \
 
 # LibBoost
 RUN cd ${WORK_PATH} && echo Compiling LibBoost ${LIBBOOST_VERSION} \
-  && wget https://dl.bintray.com/boostorg/release/${LIBBOOST_VERSION}/source/boost_${LIBBOOST_REFERENCE}.tar.gz \
-  && tar xvf libboost_${LIBBOOST_REFERENCE}.tar.gz && cd boost_${LIBBOOST_REFERENCE} \
-  && ./boostrap.sh && ./b2 toolset=gcc install --prefix=/usr/local -j4 && \
+  && wget -q https://dl.bintray.com/boostorg/release/${LIBBOOST_VERSION}/source/boost_${LIBBOOST_REFERENCE}.tar.gz \
+  && tar xvf boost_${LIBBOOST_REFERENCE}.tar.gz && cd boost_${LIBBOOST_REFERENCE} \
+  && ./bootstrap.sh && ./b2 toolset=gcc install --prefix=/usr/local -j4 && \
   rm -R ${WORK_PATH}/libboost_${LIBBOOST_REFERENCE}
 
 # rocksdb
