@@ -1,85 +1,89 @@
-FROM ubuntu:xenial
+FROM ubuntu:bionic
 MAINTAINER Simon Ball <open-source@simonball.me>
 
-ARG CMAKE_VERSION=3.11.1
-ARG GOOGLE_TEST_VERSION=1.8.0
-ARG MONGO_C_VERSION=1.4.3
-ARG MONGO_CXX_VERSION=3.0.2
-ARG ZEROMQ_VERSION=4.3.0
-ARG LIBZMQ_CPP_VERSION=4.2.3
+ARG ROCKSB_VERSION=5.12.fb
+ARG MONGO_C_VERSION=1.11.0
+ARG MONGO_CXX_VERSION=3.3
 ARG LIBZMQ_VERSION=4.2.3
+ARG LIBZMQ_CPP_VERSION=4.2.3
+# Make sure these two values are aligned
 ARG LIBBOOST_VERSION=1.65.1
-# Should be the same as boost version replacing the dots for underscores
-ARG LIBBOOST_REF=1_65_1
-ARG ROCKSB_VERSION=5.12.4
+ARG LIBBOOST_REFERENCE=1_65_1
+# Possible options for below include "RelWithDebugInfo" "Release"
+ARG BUILD_TYPE=Release
+ARG WORK_PATH=/tmp
 
-RUN apt-get update -y && apt-get upgrade -y && apt-get clean && apt-get install -y --no-install-recommends \
-  autoconf \
-  automake \
-  apt-file \
-  build-essential \
+RUN mkdir -p $WORK_PATH \
+  && apt-get update -y && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+  ca-certificates \
+  cmake \
   curl \
   git \
-  libc6-dev \
-  libssl-dev \
+  g++ \
+  googletest \
+  libbz2-dev \
+  libgflags-dev \
+  liblz4-dev \
   libsasl2-dev \
-  libtool \
+  libsnappy-dev \
+  libssl-dev \
+  libzstd-dev \
+  make \
   pkg-config \
   python3 \
-  python-dev \
-  software-properties-common \
-  vim \
   wget \
+  zlib1g-dev \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# gcc,g++ 7
-RUN add-apt-repository ppa:ubuntu-toolchain-r/test \
-  && apt-get update && apt-get install -y --no-install-recommends gcc-7 g++-7 \
-  && apt-get clean && rm -rf /var/lib/apt/lists/* \
-  && rm /usr/bin/gcc /usr/bin/g++ \
-  && ln -s /usr/bin/gcc-7 /usr/bin/gcc \
-  && ln -s /usr/bin/g++-7 /usr/bin/g++
+# Compile Google Test
+RUN cd /usr/src/googletest \
+  && mkdir -p _build && cd _build \
+  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+  && make -j4 \
+  && make install
 
-# cmake
-RUN cd /tmp && echo Compiling CMake ${CMAKE_VERSION} && git clone https://gitlab.kitware.com/cmake/cmake.git -b v${CMAKE_VERSION} --depth 1 cmake \
-  && cd cmake \
-  && ./bootstrap --prefix=/usr/local && make -j4 && make install
-
-# boost
-RUN cd /tmp && echo Compiling Boost ${LIBBOOST_VERSION} && wget https://dl.bintray.com/boostorg/release/${LIBBOOST_VERSION}/source/boost_${LIBBOOST_REF}.tar.gz \
-  && tar xzf boost_${LIBBOOST_REF}.tar.gz && cd boost_${LIBBOOST_REF} \
-  && ./bootstrap.sh && ./b2 toolset=gcc install --prefix=/usr/local -j4
-
-# gtest
-RUN cd /tmp && echo Google Test ${GOOGLE_TEST_VERSION} && git clone https://github.com/google/googletest.git -b release-${GOOGLE_TEST_VERSION} --depth 1 \
-  && mkdir -p googletest/_build && cd googletest/_build \
-  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. && make -j4 && make install
+# LibBoost
+RUN cd ${WORK_PATH} && echo Compiling LibBoost ${LIBBOOST_VERSION} \
+  && wget https://dl.bintray.com/boostorg/release/${LIBBOOST_VERSION}/source/boost_${LIBBOOST_REFERENCE}.tar.gz \
+  && tar xvf libboost_${LIBBOOST_REFERENCE}.tar.gz && cd boost_${LIBBOOST_REFERENCE} \
+  && ./boostrap.sh && ./b2 toolset=gcc install --prefix=/usr/local -j4 && \
+  rm -R ${WORK_PATH}/libboost_${LIBBOOST_REFERENCE}
 
 # rocksdb
-RUN cd /tmp && echo Compiling RocksDB ${ROCKSB_VERSION} && git clone https://github.com/facebook/rocksdb.git -b v${ROCKSB_VERSION} --depth 1 \
-  && mkdir -p rocksdb/_build && cd rocksdb/_build \
-  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. && make -j4 && make install
-
-# zmqlib
-RUN cd /tmp && echo Installing zmqlib ${LIBZMQ_VERSION} && git clone https://github.com/zeromq/libzmq.git -b v${LIBZMQ_VERSION} --depth 1 \
-  && mkdir -p libzmq/_build && cd libzmq/_build \
-  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. && make -j4 && make install
-
-# cppzmq
-RUN cd /tmp && echo Installing CPPZMQ ${LIBZMQ_CPP_VERSION} && git clone https://github.com/zeromq/cppzmq.git -b v${LIBZMQ_CPP_VERSION} --depth 1 \
-  && mkdir -p cppzmq/_build && cd cppzmq/_build \
-  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. && make -j4 && make install
+RUN cd ${WORK_PATH} && echo Compiling RocksDB ${ROCKSB_VERSION} \
+  && git clone https://github.com/facebook/rocksdb.git --branch ${ROCKSB_VERSION} --depth 1 rocksdb \
+  && cd rocksdb \
+  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local . \
+  && make -j4 all && make install \
+  && rm -R ${WORK_PATH}/rocksdb
 
 # mongo-c
-RUN cd /tmp && echo Installing mongo C driver ${MONGO_C_VERSION} && git clone https://github.com/mongodb/mongo-c-driver.git -b ${MONGO_C_VERSION} --depth 1 \
-  && cd mongo-c-driver \
-  && ./autogen.sh && ./configure --disable-automatic-init-and-cleanup --prefix=/usr/local \
-  && make -j4 && make install
+RUN cd ${WORK_PATH} && echo Installing mongo C driver ${MONGO_C_VERSION} && git clone https://github.com/mongodb/mongo-c-driver.git --branch ${MONGO_C_VERSION} --depth 1 mongo-c-driver \
+  && mkdir -p mongo-c-driver/_build && cd mongo-c-driver/_build \
+  && cmake -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+  make -j4 && make install \
+  && rm -R ${WORK_PATH}/mongo-c-driver
 
 # mongo-cxx
-RUN cd /tmp && echo Installing Mongo Cpp driver ${MONGO_CXX_VERSION} && git clone https://github.com/mongodb/mongo-cxx-driver.git -b r${MONGO_CXX_VERSION} --depth 1 \
-  && cd mongo-cxx-driver/build \
-  && cmake -DBSONCXX_POLY_USE_BOOST=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. \
-  && make -j4 && make install
+RUN cd ${WORK_PATH} && echo Installing Mongo Cpp driver ${MONGO_CXX_VERSION} && git clone https://github.com/mongodb/mongo-cxx-driver.git --branch releases/v${MONGO_CXX_VERSION} --depth 1 mongo-cxx-driver \
+  && mkdir -p mongo-cxx-driver/_build && cd mongo-cxx-driver/_build \
+  && cmake -DCMAKE_BUILD_TYPE="${BUILD_TYPE" -DCMAKE_INSTALL_PREFIX=/usr/local -DBSONCXX_POLY_USE_BOOST=1 .. \
+  && make && make install \
+  && rm -R ${WORK_PATH}/mongo-cxx-driver
+
+# libzmq
+RUN cd ${WORK_PATH} && echo Installing ZMQ ${LIBZMQ_VERSION} && git clone https://github.com/zeromq/libzmq.git --branch v${LIBZMQ_VERSION} --depth 1 libzmq \
+  && mkdir -p libzmq/_build && cd libzmq/_build \
+  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+  && make -j4 && make install \
+  && rm -R ${WORK_PATH}/libzmq
+
+# cppzmq
+RUN cd ${WORK_PATH} && echo Installing CPPZMQ ${LIBZMQ_CPP_VERSION} && git clone https://github.com/zeromq/cppzmq.git --branch v${LIBZMQ_CPP_VERSION} --depth 1 cppzmq \
+  && rm -R cppzmq/.git \
+  && mkdir -p cppzmq/_build && cd cppzmq/_build \
+  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+  && make -j4 && make install \
+  && rm -R ${WORK_PATH}/cppzmq
 
 CMD ["/usr/bin/bash"]
