@@ -67,7 +67,7 @@ RUN cd ${WORK_PATH} && echo Compiling RocksDB ${ROCKSB_VERSION} \
 RUN cd ${WORK_PATH} && echo Installing mongo C driver ${MONGO_C_VERSION} \
   && git clone https://github.com/mongodb/mongo-c-driver.git --branch ${MONGO_C_VERSION} --depth 1 mongo-c-driver \
   && mkdir -p mongo-c-driver/_build && cd mongo-c-driver/_build \
-  && cmake -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+	&& cmake -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF -DCMAKE_INSTALL_PREFIX=/usr/local .. \
   && make -j4 && make install \
   && rm -R ${WORK_PATH}/mongo-c-driver
 
@@ -75,7 +75,10 @@ RUN cd ${WORK_PATH} && echo Installing mongo C driver ${MONGO_C_VERSION} \
 RUN cd ${WORK_PATH} && echo Installing Mongo Cxx driver ${MONGO_CXX_VERSION} \
   && git clone https://github.com/mongodb/mongo-cxx-driver.git --branch releases/v${MONGO_CXX_VERSION} --depth 1 mongo-cxx-driver \
   && mkdir -p mongo-cxx-driver/_build && cd mongo-cxx-driver/_build \
-  && cmake -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DCMAKE_INSTALL_PREFIX=/usr/local -DBSONCXX_POLY_USE_BOOST=1 .. \
+  && cmake \
+		-DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+		-DCMAKE_INSTALL_PREFIX=/usr/local \
+		-DBSONCXX_POLY_USE_BOOST=1 .. \
   && make -j4 && make install \
   && rm -R ${WORK_PATH}/mongo-cxx-driver
 

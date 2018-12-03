@@ -1,0 +1,29 @@
+#!/bin/bash
+cd ~/.aen/chain
+
+
+# Make sure file lock is OK
+if [ -f ~/.aen/data/file.lock ]; then
+  echo 'Deleting old lock file'
+  rm -f ~/.aen/data/file.lock
+fi
+
+if [ -d ~/.aen/data/statedb ]; then
+  echo 'Deleting corrupt statedb path'
+  rm -Rf ~/.aen/data/statedb
+fi
+
+# Wait until Mongo is alive
+while [ -z "`netstat -tln | grep 27017`" ]; do
+  echo 'Waiting for Mongo to start ...'
+  sleep 1
+done
+
+# To prevent race condition sleep and then make sure it really isn't running
+sleep 5
+if ! pgrep catapult > /dev/null; then
+    echo "Catapult not found, starting up"
+    ./catapult.server ..
+else
+  echo "Catapult Already Running"
+fi
