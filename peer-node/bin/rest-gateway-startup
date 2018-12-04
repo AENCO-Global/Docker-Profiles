@@ -10,8 +10,4 @@ if [ ! -e ~/.aen/var/rest_gateway_built ]; then
   echo "OK" > ~/.aen/var/rest_gateway_built
 fi
 
-sleep 5
-if ! pgrep "restnode.js" > /dev/null
-then
-    npm start ~/.aen/resources/rest.json
-fi
+npm start ~/.aen/resources/rest.json

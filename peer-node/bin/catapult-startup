@@ -20,10 +20,4 @@ while [ -z "`netstat -tln | grep 27017`" ]; do
 done
 
 # To prevent race condition sleep and then make sure it really isn't running
-sleep 5
-if ! pgrep catapult > /dev/null; then
-    echo "Catapult not found, starting up"
-    ./catapult.server ..
-else
-  echo "Catapult Already Running"
-fi
+./catapult.server ..
