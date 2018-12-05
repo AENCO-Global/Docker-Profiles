@@ -1,6 +1,12 @@
 #!/bin/bash
 cd ~/.aen/chain
 
+# If the program is already running, kill it
+# It's possible that this shell task was interrupted without closing catapult
+if pgrep -f "catapult.server" > /dev/null
+then
+    pkill -f "catapult.server"
+fi
 
 # Make sure file lock is OK
 if [ -f ~/.aen/data/file.lock ]; then
@@ -19,5 +25,6 @@ while [ -z "`netstat -tln | grep 27017`" ]; do
   sleep 1
 done
 
+sleep 5
 # To prevent race condition sleep and then make sure it really isn't running
 ./catapult.server ..
