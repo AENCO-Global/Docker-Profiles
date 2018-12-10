@@ -1,23 +1,41 @@
 #!/bin/bash
 cd ~/.aen/chain
 
+echo "STARTING UP"
+
+killCatapult() {
+  if pgrep -f "catapult.server" > /dev/null
+  then
+      pkill -f "catapult.server"
+  fi
+}
+
+cleanFiles() {
+  # Make sure file lock is OK
+  if [ -f ~/.aen/data/file.lock ]; then
+    echo 'Deleting old lock file'
+    rm -f ~/.aen/data/file.lock
+  fi
+
+  if [ -d ~/.aen/data/statedb ]; then
+    echo 'Deleting corrupt statedb path'
+    rm -Rf ~/.aen/data/statedb
+  fi
+}
+
+_term() {
+  echo 'SHUTTING DOWN'
+  killCatapult
+  cleanFiles
+  exit 1
+}
+
+
+
 # If the program is already running, kill it
 # It's possible that this shell task was interrupted without closing catapult
-if pgrep -f "catapult.server" > /dev/null
-then
-    pkill -f "catapult.server"
-fi
-
-# Make sure file lock is OK
-if [ -f ~/.aen/data/file.lock ]; then
-  echo 'Deleting old lock file'
-  rm -f ~/.aen/data/file.lock
-fi
-
-if [ -d ~/.aen/data/statedb ]; then
-  echo 'Deleting corrupt statedb path'
-  rm -Rf ~/.aen/data/statedb
-fi
+killCatapult
+cleanFiles
 
 # Wait until Mongo is alive
 while [ -z "`netstat -tln | grep 27017`" ]; do
@@ -28,3 +46,8 @@ done
 sleep 5
 # To prevent race condition sleep and then make sure it really isn't running
 ./catapult.server ..
+
+killCatapult
+cleanFiles
+# Catch terminate signals
+trap _term SIGHUP SIGINT SIGTERM SIGQUIT SIGKILL

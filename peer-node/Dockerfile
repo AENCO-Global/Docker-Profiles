@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y \
   npm \
   supervisor \
   && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && npm i -g yarn
 
 # AEN Server
 COPY --from=aenco/master-node:core /root/.aen/chain/ /root/.aen/chain
