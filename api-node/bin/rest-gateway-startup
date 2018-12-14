@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# Shutdown any existing rest gateway instances by process name
+#
+killProcess() {
+  if pgrep -f "rest.json" > /dev/null
+  then
+      echo "Shutting down rest node instance"
+      pkill -f "rest.json"
+  fi
+}
+#
+# Clean Files
+#
+preRun() {
+  if [ ! -e ~/.aen/var/rest_gateway_built ]; then
+    echo "Rebuilding Node packages"
+    npm rebuild
+    echo "OK" > ~/.aen/var/rest_gateway_built
+  fi
+}
+#
+# Function for catching shutdown signals
+#
+_term() {
+  echo 'SHUTTING DOWN'
+  killProcess
+  exit 1
+}
+trap _term SIGINT SIGTERM
+#
+# VARIABLES
+#
+REST_PATH="$HOME/.aen/rest-gateway"
+cd "$REST_PATH"
+# Clean environment
+killProcess
+preRun
+# If there is a problem going on, prevent thrashing
+sleep 30
+npm start
