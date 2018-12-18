@@ -4,10 +4,10 @@
 #
 killProcess() {
   echo "Checking for existing process"
-  if pgrep -f "catapult.server" > /dev/null
+  if pgrep -f "aen.server" > /dev/null
   then
       echo "Shutting down existing instance of Catapult"
-      pkill -f "catapult.server"
+      pkill -f "aen.server"
   fi
 }
 #
@@ -38,7 +38,7 @@ preRun() {
 #
 _term() {
   echo 'SHUTTING DOWN'
-  killProcess
+  killProce
   exit 1
 }
 trap _term SIGINT SIGTERM
@@ -58,4 +58,4 @@ preRun
 # sleep 30
 # To prevent race condition sleep and then make sure it really isn't running
 echo "Catapult starting from - $CATAPULT_PATH"
-./catapult.server ..
+./aen.server ..

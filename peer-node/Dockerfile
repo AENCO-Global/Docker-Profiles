@@ -8,14 +8,10 @@ RUN apt-get update \
   && apt-get install -y \
   libicu60 \
   libzmq3-dev \
-  mongodb \
   net-tools \
-  nodejs \
-  npm \
   supervisor \
   && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* \
-  && npm i -g yarn
+  && rm -rf /var/lib/apt/lists/*
 
 # AEN Server
 COPY --from=aenco/master-node:core /root/.aen/chain/ /root/.aen/chain
@@ -23,9 +19,6 @@ COPY --from=aenco/master-node:core /usr/local/lib/ /usr/local/lib
 
 # Chain agent
 COPY --from=aenco/chain-agent:latest /go/src/app/aen.agent /root/.aen/bin/aen.agent
-
-# REST Gateway
-COPY --from=aenco/rest-gateway:latest /var/www/html /root/.aen/rest-gateway
 
 # Path preparation
 RUN mkdir -p /data/db \
