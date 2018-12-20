@@ -16,6 +16,7 @@ RUN apt-get update \
 # AEN Server
 COPY --from=aenco/master-node:core /root/.aen/chain/ /root/.aen/chain
 COPY --from=aenco/master-node:core /usr/local/lib/ /usr/local/lib
+COPY --from=aenco/master-node:core /tmp/localdep /root/.aen/lib
 
 # Chain agent
 COPY --from=aenco/chain-agent:latest /go/src/app/aen.agent /root/.aen/bin/aen.agent

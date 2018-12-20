@@ -21,16 +21,6 @@ preRun() {
     echo 'Deleting old lock file'
     rm -f ~/.aen/data/file.lock
   fi
-  # If catapult segfaulted, chance this path corrupt
-  # if [ -d ~/.aen/data/statedb ]; then
-  #   echo 'Deleting corrupt statedb path'
-  #   rm -Rf ~/.aen/data/statedb
-  # fi
-  # Wait until Mongo is alive
-  while [ -z "`netstat -tln | grep 27017`" ]; do
-    echo 'Waiting for Mongo to start ...'
-    sleep 1
-  done
   echo "Finished prerun procedure"
 }
 #
