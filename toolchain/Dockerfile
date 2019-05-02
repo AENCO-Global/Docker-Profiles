@@ -3,99 +3,114 @@ MAINTAINER Simon Ball <simon.ball@aencoin.com>
 
 ARG CMAKE_VERSION=3.11.1
 ARG ROCKSB_VERSION=5.14.fb
-ARG MONGO_C_VERSION=1.11.0
-ARG MONGO_CXX_VERSION=3.3
+ARG MONGO_C_VERSION=1.13.0
+ARG MONGO_CXX_VERSION=3.4.0
 ARG LIBZMQ_VERSION=4.2.3
 ARG LIBZMQ_CPP_VERSION=4.2.3
+ARG GOOGLE_BENCHMARK_VERSION=1.4.1
+ARG GOOGLE_TEST_VERSION=1.8.0
 # Make sure these two values are aligned
-ARG LIBBOOST_VERSION=1.64.0
-ARG LIBBOOST_REFERENCE=1_64_0
+ARG LIBBOOST_VERSION=1.69.0
+ARG LIBBOOST_REFERENCE=1_69_0
 ARG LIBGFLAGS_VERSION=2.2.1
 ARG LIBSNAPPY_VERSION=1.1.7
 # Possible options for below include "RelWithDebugInfo" "Release"
 ARG BUILD_TYPE=Release
 ARG WORK_PATH=/tmp
+WORKDIR /tmp
 
 RUN mkdir -p $WORK_PATH \
   && apt-get update -y && apt-get upgrade -y && apt-get install -y --no-install-recommends \
   autoconf \
   automake \
-  apt-file \
   build-essential \
   ca-certificates \
 	cmake \
   curl \
 	g++ \
   git \
-  googletest \
-	libboost1.65-all-dev \
-  libbz2-dev \
-  libc6-dev \
+  libatomic-ops-dev \
   libgflags-dev \
-  liblz4-dev \
-  libsasl2-dev \
+  libunwind-dev \
   libsnappy-dev \
-  libssl-dev \
-  libtool \
-  libzstd-dev \
-  make \
   nano \
-  pkg-config \
-  python-dev \
+  ninja-build \
   python3 \
-  software-properties-common \
-  wget \
-  zlib1g-dev \
+  python3-ply \
+  xz-utils \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Compile Google Test
-RUN cd /usr/src/googletest \
-  && mkdir -p _build && cd _build \
-  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+# BOOST
+RUN curl -o boost_${LIBBOOST_REFERENCE}.tar.gz -SL \
+    https://dl.bintray.com/boostorg/release/${LIBBOOST_VERSION}/source/boost_${LIBBOOST_REFERENCE}.tar.gz \
+    && tar -xzf boost_${LIBBOOST_REFERENCE}.tar.gz \
+    && cd boost_${LIBBOOST_REFERENCE} && ls -la && pwd \
+    && ./bootstrap.sh --prefix=/usr/local/boost \
+    && ./b2 --prefix=/usr/local/boost -j 4 stage release \
+    && ./b2 install --prefix=/usr/local/boost
+
+# GOOGLE TEST
+RUN cd ${WORK_PATH} \
+  && git clone --single-branch --branch release-${GOOGLE_TEST_VERSION} https://github.com/google/googletest.git gtest \
+  && cd gtest && mkdir _build && cd _build \\
+  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON .. \
   && make -j4 \
   && make install
 
-# rocksdb
-RUN cd ${WORK_PATH} && echo Compiling RocksDB ${ROCKSB_VERSION} \
-  && git clone https://github.com/facebook/rocksdb.git --branch ${ROCKSB_VERSION} --depth 1 rocksdb \
-  && cd rocksdb \
-  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local -LDFLAGS=-lpthread . \
-  && make -j4 all && make install \
-  && rm -R ${WORK_PATH}/rocksdb
+# GOOGLE BENCHMARK
+RUN cd ${WORK_PATH} \
+  && git clone --single-branch --branch v${GOOGLE_BENCHMARK_VERSION} https://github.com/google/benchmark.git gbenchmark \
+  && cd gbenchmark && mkdir _build && cd _build \
+  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_ENABLE_GTEST_TESTS=OFF .. \
+  && make -j4 \
+  && make install
 
-# mongo-c
-RUN cd ${WORK_PATH} && echo Installing mongo C driver ${MONGO_C_VERSION} \
-  && git clone https://github.com/mongodb/mongo-c-driver.git --branch ${MONGO_C_VERSION} --depth 1 mongo-c-driver \
-  && mkdir -p mongo-c-driver/_build && cd mongo-c-driver/_build \
-	&& cmake -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF -DCMAKE_INSTALL_PREFIX=/usr/local .. \
-  && make -j4 && make install \
-  && rm -R ${WORK_PATH}/mongo-c-driver
+# MONGO
+RUN cd ${WORK_PATH} \
+  && git clone --single-branch --branch ${MONGO_C_VERSION} https://github.com/mongodb/mongo-c-driver.git mongo-c \
+  && cd mongo-c && mkdir _build && cd _build \
+  && cmake -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+  && make -j4 \
+  && make install
 
-# mongo-cxx
-RUN cd ${WORK_PATH} && echo Installing Mongo Cxx driver ${MONGO_CXX_VERSION} \
-  && git clone https://github.com/mongodb/mongo-cxx-driver.git --branch releases/v${MONGO_CXX_VERSION} --depth 1 mongo-cxx-driver \
-  && mkdir -p mongo-cxx-driver/_build && cd mongo-cxx-driver/_build \
-  && cmake \
-		-DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
-		-DCMAKE_INSTALL_PREFIX=/usr/local \
-		-DBSONCXX_POLY_USE_BOOST=1 .. \
-  && make -j4 && make install \
-  && rm -R ${WORK_PATH}/mongo-cxx-driver
+# MONGOCXX
+RUN cd ${WORK_PATH} \
+  && git clone --single-branch --branch r${MONGO_CXX_VERSION} \
+    https://github.com/mongodb/mongo-cxx-driver.git mongo-cxx \
+  && cd mongo-cxx \
+  && sed -i 's/kvp("maxAwaitTimeMS", count)/kvp("maxAwaitTimeMS", static_cast<int64_t>(count))/' \
+    src/mongocxx/options/change_stream.cpp \
+  && mkdir _build && cd _build \
+  && cmake -DBOOST_ROOT=/usr/local/boost \
+    -DBSONCXX_POLY_USE_BOOST=1 \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+  && make -j4 \
+  && make install
+# -DLIBBSON_DIR=/usr/local
+# -DLIBMONGOC_DIR=/usr/local
 
-# libzmq
-RUN cd ${WORK_PATH} && echo Installing ZMQ ${LIBZMQ_VERSION} \
-	&& git clone https://github.com/zeromq/libzmq.git --branch v${LIBZMQ_VERSION} --depth 1 libzmq \
-  && mkdir -p libzmq/_build && cd libzmq/_build \
-  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. \
-  && make -j4 && make install \
-  && rm -R ${WORK_PATH}/libzmq
+# ZMQ
+RUN cd ${WORK_PATH} \
+  && git clone git://github.com/zeromq/libzmq.git libzmq \
+  && cd libzmq && mkdir _build && cd _build \
+  && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+  && make -j4 \
+  && make install
 
-# cppzmq
-RUN cd ${WORK_PATH} && echo Installing CPPZMQ ${LIBZMQ_CPP_VERSION} && git clone https://github.com/zeromq/cppzmq.git --branch v${LIBZMQ_CPP_VERSION} --depth 1 cppzmq \
-  && rm -R cppzmq/.git \
-  && mkdir -p cppzmq/_build && cd cppzmq/_build \
-  && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. \
-  && make -j4 && make install \
-  && rm -R ${WORK_PATH}/cppzmq
+# CPPZMQ
+RUN cd ${WORK_PATH} \
+  && git clone https://github.com/zeromq/cppzmq.git cppzmq \
+  && cd cppzmq && mkdir _build && cd _build \
+  && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+  && make -j4 \
+  && make install
 
+# ROCKS
+RUN cd ${WORK_PATH} \
+  && git clone --single-branch --branch ${ROCKSB_VERSION} https://github.com/facebook/rocksdb.git rocksdb \
+  && cd rocksdb && mkdir _build && cd _build \
+  && cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+  && make -j4 \
+  && make install
 CMD ["/usr/bin/bash"]

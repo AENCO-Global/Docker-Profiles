@@ -1,4 +1,4 @@
-FROM aenco/catapult:toolchain as builder
+FROM aenco/catapult:toolchain-v0.1 as builder
 
 COPY . /var/app/src
 
