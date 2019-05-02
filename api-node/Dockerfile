@@ -18,15 +18,13 @@ RUN apt-get update \
   && npm i -g yarn
 
 # AEN Server
-COPY --from=aenco/master-node:core /root/.aen/chain/ /root/.aen/chain
-COPY --from=aenco/master-node:core /usr/local/lib/ /usr/local/lib
-COPY --from=aenco/master-node:core /tmp/localdep /root/.aen/lib
+COPY --from=aenco/catapult:v0.1 /root/.aen/chain/ /root/.aen/chain
+COPY --from=aenco/catapult:v0.1 /usr/local/lib/ /usr/local/lib
+# REST Gateway
+COPY --from=aenco/rest-gateway:v0.1 /var/www/html /root/.aen/rest-gateway
 
 # Chain agent
 COPY --from=aenco/chain-agent:latest /go/src/app/aen.agent /root/.aen/bin/aen.agent
-
-# REST Gateway
-COPY --from=aenco/rest-gateway:latest /var/www/html /root/.aen/rest-gateway
 
 # Path preparation
 RUN mkdir -p /data/db \

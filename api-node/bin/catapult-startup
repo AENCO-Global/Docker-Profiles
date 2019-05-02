@@ -11,6 +11,15 @@ killProcess() {
   fi
 }
 #
+# Function for catching shutdown signals
+#
+_term() {
+  echo 'SHUTTING DOWN'
+  killProcess
+  exit 1
+}
+trap _term SIGINT SIGTERM
+#
 # Clear up some of the files in the home working path that create problems upon
 # Catapult segfaults
 #
@@ -34,15 +43,6 @@ preRun() {
   echo "Finished prerun procedure"
 }
 #
-# Function for catching shutdown signals
-#
-_term() {
-  echo 'SHUTTING DOWN'
-  killProce
-  exit 1
-}
-trap _term SIGINT SIGTERM
-#
 # VARIABLES
 #
 CATAPULT_PATH="$HOME/.aen/chain"
@@ -58,4 +58,4 @@ preRun
 # sleep 30
 # To prevent race condition sleep and then make sure it really isn't running
 echo "Catapult starting from - $CATAPULT_PATH"
-./aen.server ..
+exec./aen.server ..

@@ -1,4 +1,4 @@
-FROM aenco/master-node:toolchain as builder
+FROM aenco/catapult:toolchain as builder
 
 COPY . /var/app/src
 
@@ -54,4 +54,4 @@ COPY --from=builder /tmp/localdep/ /usr/local/lib
 RUN apt-get update && apt-get upgrade -y && apt-get install -y libicu60
 
 WORKDIR /root/.aen/chain
-CMD ["/root/.aen/chain/catapult.server .."]
+CMD ["/root/.aen/chain/catapult.server", .."]
